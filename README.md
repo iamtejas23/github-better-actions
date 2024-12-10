@@ -144,3 +144,62 @@ We use a Slack webhook to send notifications about the status of the deployment.
 
 This project demonstrates a full CI/CD pipeline for a Node.js application using GitHub Actions. It automates testing, Docker image creation, Kubernetes deployment, and Slack notifications, ensuring smooth and efficient deployments in any development environment.
 
+
+### Github actions workflow 
+
+```
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Run Tests
+      run: npm test
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest .
+        docker push ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/deployment.yml
+        kubectl apply -f k8s/service.yml
+
+    - name: Notify on Slack
+      uses: rtCamp/action-slack-notify@v2
+      with:
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        message: "Deployment completed successfully!"
+
+```
